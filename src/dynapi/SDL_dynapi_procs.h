@@ -1306,7 +1306,7 @@ SDL_DYNAPI_PROC(SDL_Surface*,SDL_LoadSurface_IO,(SDL_IOStream *a,bool b),(a,b),r
 SDL_DYNAPI_PROC(SDL_Surface*,SDL_LoadSurface,(const char *a),(a),return)
 SDL_DYNAPI_PROC(bool,SDL_SetWindowFillDocument,(SDL_Window *a,bool b),(a,b),return)
 SDL_DYNAPI_PROC(void,SDL_CopyGPUQueryResultsToBuffer,(SDL_GPUCopyPass *a,SDL_GPUQueryPool *b,Uint32 c,Uint32 d,SDL_GPUBufferLocation *e),(a,b,c,d,e),)
-SDL_DYNAPI_PROC(Uint64,SDL_GetGPUTimestampFrequency,(SDL_GPUDevice *a),(a),return)
+SDL_DYNAPI_PROC(float,SDL_GetGPUTimestampFrequency,(SDL_GPUDevice *a),(a),return)
 SDL_DYNAPI_PROC(SDL_GPUQueryPool*,SDL_CreateGPUQueryPool,(SDL_GPUDevice *a,SDL_GPUQueryPoolCreateInfo *b),(a,b),return)
 SDL_DYNAPI_PROC(void,SDL_BeginGPUQuery,(SDL_GPUCommandBuffer *a,SDL_GPUQueryPool *b,Uint32 c),(a,b,c),)
 SDL_DYNAPI_PROC(void,SDL_EndGPUQuery,(SDL_GPUCommandBuffer *a,SDL_GPUQueryPool *b,Uint32 c),(a,b,c),)
