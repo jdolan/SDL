@@ -1079,6 +1079,10 @@ struct SDL_GPUDevice
         SDL_GPURenderer *driverData,
         SDL_GPUFence *fence);
 
+    float (*GetTimestampFrequency)(
+        SDL_GPURenderer *device
+    );
+
     SDL_GPUQueryPool *(*CreateQueryPool)(
         SDL_GPURenderer *driverData,
         SDL_GPUQueryPoolCreateInfo *createinfo);
@@ -1211,6 +1215,7 @@ struct SDL_GPUDevice
     ASSIGN_DRIVER_FUNC(WaitForFences, name)                 \
     ASSIGN_DRIVER_FUNC(QueryFence, name)                    \
     ASSIGN_DRIVER_FUNC(ReleaseFence, name)                  \
+    ASSIGN_DRIVER_FUNC(GetTimestampFrequency, name)         \
     ASSIGN_DRIVER_FUNC(CreateQueryPool, name)               \
     ASSIGN_DRIVER_FUNC(BeginQuery, name)                    \
     ASSIGN_DRIVER_FUNC(EndQuery, name)                      \
