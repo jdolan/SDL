@@ -2324,7 +2324,7 @@ static void METAL_BeginRenderPass(
         SDL_FColor blendConstants;
 
         if (depthStencilTargetInfo) {
-            MetalQueryPool *pool = (MetalQueryPool *) depthStencilTargetInfo->queryPool;
+            MetalQueryPool *pool = (MetalQueryPool *) depthStencilTargetInfo->query_pool;
             if (pool && (pool->type == SDL_GPU_QUERY_BINARY_OCCLUSION || pool->type == SDL_GPU_QUERY_PRECISE_OCCLUSION)) {
                 passDescriptor.visibilityResultBuffer = pool->resultBuffer;
             }
