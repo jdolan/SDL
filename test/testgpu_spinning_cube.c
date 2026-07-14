@@ -736,7 +736,7 @@ static void Render(SDL_Window *window, const int windownum)
     depth_target.stencil_store_op = SDL_GPU_STOREOP_DONT_CARE;
     depth_target.texture = winstate->tex_depth;
     depth_target.cycle = true;
-    depth_target.queryPool = render_state.occlusion_query_pool;
+    depth_target.query_pool = render_state.occlusion_query_pool;
 
     /* Set up the bindings */
 
