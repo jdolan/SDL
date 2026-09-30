@@ -1,8 +1,9 @@
 name: 'ObjectivelyGPU'
 run-name: 'Publish SDL artifacts for ${{ inputs.tag }}'
 
-# Builds the SDL revision that a tag points to and publishes it to that tag's release under fixed
-# asset names, so that ObjectivelyGPU, ObjectivelyMVC and Quetoo can pin SDL by tag alone.
+# Builds the SDL revision that a tag points to and publishes its Windows development libraries to
+# that tag's release under a fixed asset name, so that ObjectivelyGPU, ObjectivelyMVC and Quetoo can
+# pin SDL by tag alone. The Xcode workspaces build SDL in-tree, and need no artifact.
 #
 # This workflow MUST live on the default branch and MUST NOT be triggered by a tag push: a tag may
 # point at an upstream release commit, which does not contain this file.
@@ -64,48 +65,6 @@ jobs:
           name: sources
           path: '${{ github.workspace }}/dist'
 
-  dmg:
-    needs: [src]
-    runs-on: macos-latest
-    outputs:
-      dmg: ${{ steps.releaser.outputs.dmg }}
-    steps:
-      - name: 'Set up Python'
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.11'
-      - name: 'Fetch build-release.py'
-        uses: actions/checkout@v6
-        with:
-          ref: ${{ needs.src.outputs.commit }}
-          sparse-checkout: 'build-scripts/build-release.py'
-      - name: 'Download source archives'
-        uses: actions/download-artifact@v8
-        with:
-          name: sources
-          path: '${{ github.workspace }}'
-      - name: 'Untar ${{ needs.src.outputs.src-tar-gz }}'
-        id: tar
-        run: |
-          mkdir -p "${{ github.workspace }}/tardir"
-          tar -C "${{ github.workspace }}/tardir" -x -f "${{ github.workspace }}/${{ needs.src.outputs.src-tar-gz }}"
-          echo "path=${{ github.workspace }}/tardir/${{ needs.src.outputs.project }}-${{ needs.src.outputs.version }}" >> $GITHUB_OUTPUT
-      - name: 'Build SDL3.dmg'
-        id: releaser
-        shell: bash
-        run: |
-          python build-scripts/build-release.py \
-            --actions dmg \
-            --commit ${{ needs.src.outputs.commit }} \
-            --root "${{ steps.tar.outputs.path }}" \
-            --github \
-            --debug
-      - name: 'Store DMG image file'
-        uses: actions/upload-artifact@v7
-        with:
-          name: dmg
-          path: '${{ github.workspace }}/dist'
-
   msvc:
     needs: [src]
     runs-on: windows-2025
@@ -149,7 +108,7 @@ jobs:
           path: '${{ github.workspace }}/dist'
 
   publish:
-    needs: [src, dmg, msvc]
+    needs: [src, msvc]
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
@@ -164,7 +123,6 @@ jobs:
       - name: 'Rename to fixed asset names'
         run: |
           mkdir release
-          cp "artifacts/${{ needs.dmg.outputs.dmg }}" release/SDL3.dmg
           cp "artifacts/${{ needs.msvc.outputs.VC-devel }}" release/SDL3-devel-VC.zip
       - name: 'Publish to the ${{ inputs.tag }} release'
         run: |
