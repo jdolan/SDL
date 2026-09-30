@@ -9344,7 +9344,7 @@ static void VULKAN_DownloadQueryResults(
         dstContainer->activeBuffer->buffer,
         destination->offset,
         8, // Result for timing and occlusion is one 64-bit integer
-        VK_QUERY_RESULT_64_BIT);
+        VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
 
     VULKAN_INTERNAL_TrackQueryPool(vulkanCommandBuffer, vulkanQueryPool);
     VULKAN_INTERNAL_TrackBuffer(vulkanCommandBuffer, dstContainer->activeBuffer);
