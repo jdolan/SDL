@@ -21,6 +21,9 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: objectivelygpu-${{ inputs.tag }}
+
 jobs:
 
   src:
