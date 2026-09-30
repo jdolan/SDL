@@ -937,6 +937,7 @@ typedef struct VulkanQueryPool
 {
     VkQueryPool pool;
     SDL_GPUQueryType type;
+    Uint32 queryCount;
     SDL_AtomicInt referenceCount;
 } VulkanQueryPool;
 
@@ -7111,6 +7112,7 @@ static SDL_GPUQueryPool *VULKAN_CreateQueryPool(
 
     SDL_SetAtomicInt(&pool->referenceCount, 0);
     pool->type = createinfo->type;
+    pool->queryCount = createinfo->query_count;
 
     return (SDL_GPUQueryPool *)pool;
 }
@@ -8152,6 +8154,19 @@ static void VULKAN_BeginRenderPass(
     renderPassBeginInfo.renderArea.extent.height = framebufferHeight;
     renderPassBeginInfo.renderArea.offset.x = 0;
     renderPassBeginInfo.renderArea.offset.y = 0;
+
+    // Occlusion queries are begun inside the render pass, where vkCmdResetQueryPool is not allowed
+    if (depthStencilTargetInfo != NULL && depthStencilTargetInfo->query_pool != NULL) {
+        VulkanQueryPool *queryPool = (VulkanQueryPool *)depthStencilTargetInfo->query_pool;
+        if (queryPool->type != SDL_GPU_QUERY_TIMESTAMP) {
+            renderer->vkCmdResetQueryPool(
+                vulkanCommandBuffer->commandBuffer,
+                queryPool->pool,
+                0,
+                queryPool->queryCount);
+            VULKAN_INTERNAL_TrackQueryPool(vulkanCommandBuffer, queryPool);
+        }
+    }
 
     renderer->vkCmdBeginRenderPass(
         vulkanCommandBuffer->commandBuffer,
@@ -9972,15 +9987,16 @@ static void VULKAN_BeginQuery(
     VulkanRenderer *renderer = vulkanCommandBuffer->renderer;
     VulkanQueryPool *vulkanQueryPool = (VulkanQueryPool *)pool;
 
-    renderer->vkCmdResetQueryPool(
-        vulkanCommandBuffer->commandBuffer,
-        vulkanQueryPool->pool,
-        index,
-        1);
+    VULKAN_INTERNAL_TrackQueryPool(vulkanCommandBuffer, vulkanQueryPool);
 
     // Timestamp queries don't begin and end, we just need a distinction between
     // a timestamp written when preceding commands are taken and when preceding commands are finished.
     if (vulkanQueryPool->type == SDL_GPU_QUERY_TIMESTAMP) {
+        renderer->vkCmdResetQueryPool(
+            vulkanCommandBuffer->commandBuffer,
+            vulkanQueryPool->pool,
+            index,
+            1);
         renderer->vkCmdWriteTimestamp(
             vulkanCommandBuffer->commandBuffer,
             VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,

@@ -2140,7 +2140,7 @@ typedef struct SDL_GPUDepthStencilTargetInfo
     Uint8 clear_stencil;                   /**< The value to clear the stencil component to at the beginning of the render pass. Ignored if SDL_GPU_LOADOP_CLEAR is not used. */
     Uint8 mip_level;                       /**< The mip level to use as the depth stencil target. */
     Uint8 layer;                           /**< The layer index to use as the depth stencil target. */
-    SDL_GPUQueryPool *query_pool;           /**< The query pool to which query results will be written during the render pass. */
+    SDL_GPUQueryPool *query_pool;           /**< The occlusion query pool to which query results will be written during the render pass. All of its queries are reset when the render pass begins, so each query that is later downloaded must be begun and ended in this render pass. */
 } SDL_GPUDepthStencilTargetInfo;
 
 /**
