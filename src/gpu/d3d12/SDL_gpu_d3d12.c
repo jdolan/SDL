@@ -1558,6 +1558,50 @@ static bool D3D12_QueryFence(
     return ID3D12Fence_GetCompletedValue(d3d12Fence->handle) == D3D12_FENCE_SIGNAL_VALUE;
 }
 
+// Queries are not implemented by this backend. Pool creation fails, so the other entry points are unreachable.
+
+static float D3D12_GetTimestampFrequency(SDL_GPURenderer *driverData)
+{
+    return 0.0f;
+}
+
+static SDL_GPUQueryPool *D3D12_CreateQueryPool(
+    SDL_GPURenderer *driverData,
+    SDL_GPUQueryPoolCreateInfo *createinfo)
+{
+    SDL_Unsupported();
+    return NULL;
+}
+
+static void D3D12_ReleaseQueryPool(
+    SDL_GPURenderer *driverData,
+    SDL_GPUQueryPool *pool)
+{
+}
+
+static void D3D12_BeginQuery(
+    SDL_GPUCommandBuffer *commandBuffer,
+    SDL_GPUQueryPool *pool,
+    Uint32 index)
+{
+}
+
+static void D3D12_EndQuery(
+    SDL_GPUCommandBuffer *commandBuffer,
+    SDL_GPUQueryPool *pool,
+    Uint32 index)
+{
+}
+
+static void D3D12_DownloadQueryResults(
+    SDL_GPUCommandBuffer *commandBuffer,
+    SDL_GPUQueryPool *pool,
+    Uint32 first_query,
+    Uint32 count,
+    const SDL_GPUTransferBufferLocation *destination)
+{
+}
+
 static void D3D12_INTERNAL_DestroyDescriptorHeap(D3D12DescriptorHeap *descriptorHeap)
 {
     if (!descriptorHeap) {
