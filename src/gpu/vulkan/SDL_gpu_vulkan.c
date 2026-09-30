@@ -1157,6 +1157,7 @@ struct VulkanRenderer
     bool supportsPortabilityEnumeration;
     bool supportsFillModeNonSolid;
     bool supportsMultiDrawIndirect;
+    bool supportsOcclusionQueryPrecise;
 
     VulkanMemoryAllocator *memoryAllocator;
     VkPhysicalDeviceMemoryProperties memoryProperties;
@@ -9991,7 +9992,7 @@ static void VULKAN_BeginQuery(
             vulkanCommandBuffer->commandBuffer,
             vulkanQueryPool->pool,
             index,
-            vulkanQueryPool->type == SDL_GPU_QUERY_PRECISE_OCCLUSION ? VK_QUERY_CONTROL_PRECISE_BIT : 0);
+            (vulkanQueryPool->type == SDL_GPU_QUERY_PRECISE_OCCLUSION && renderer->supportsOcclusionQueryPrecise) ? VK_QUERY_CONTROL_PRECISE_BIT : 0);
     }
 }
 
@@ -12731,6 +12732,11 @@ static Uint8 VULKAN_INTERNAL_CreateLogicalDevice(
     if (haveDeviceFeatures.multiDrawIndirect) {
         features->desiredVulkan10DeviceFeatures.multiDrawIndirect = VK_TRUE;
         renderer->supportsMultiDrawIndirect = true;
+    }
+
+    if (haveDeviceFeatures.occlusionQueryPrecise) {
+        features->desiredVulkan10DeviceFeatures.occlusionQueryPrecise = VK_TRUE;
+        renderer->supportsOcclusionQueryPrecise = true;
     }
 
     // creating the logical device
