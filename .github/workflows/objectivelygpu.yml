@@ -1,0 +1,174 @@
+name: 'ObjectivelyGPU'
+run-name: 'Publish SDL artifacts for ${{ inputs.tag }}'
+
+# Builds the SDL revision that a tag points to and publishes it to that tag's release under fixed
+# asset names, so that ObjectivelyGPU, ObjectivelyMVC and Quetoo can pin SDL by tag alone.
+#
+# This workflow MUST live on the default branch and MUST NOT be triggered by a tag push: a tag may
+# point at an upstream release commit, which does not contain this file.
+#
+#   git tag -f ObjectivelyGPU <rev> && git push -f origin ObjectivelyGPU
+#   gh workflow run objectivelygpu.yml -R jdolan/SDL
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag of SDL to build and publish'
+        required: true
+        default: 'ObjectivelyGPU'
+
+permissions:
+  contents: write
+
+jobs:
+
+  src:
+    runs-on: ubuntu-latest
+    outputs:
+      commit: ${{ steps.commit.outputs.sha }}
+      project: ${{ steps.releaser.outputs.project }}
+      version: ${{ steps.releaser.outputs.version }}
+      src-tar-gz: ${{ steps.releaser.outputs.src-tar-gz }}
+      src-zip: ${{ steps.releaser.outputs.src-zip }}
+    steps:
+      - name: 'Set up Python'
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - name: 'Set up SDL sources'
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag }}
+          path: 'SDL'
+          fetch-depth: 0
+      - name: 'Resolve ${{ inputs.tag }}'
+        id: commit
+        run: echo "sha=$(git -C SDL rev-parse HEAD)" >> $GITHUB_OUTPUT
+      - name: 'Build Source archive'
+        id: releaser
+        shell: bash
+        run: |
+          python SDL/build-scripts/build-release.py \
+            --actions source \
+            --commit ${{ steps.commit.outputs.sha }} \
+            --root "${{ github.workspace }}/SDL" \
+            --github \
+            --debug
+      - name: 'Store source archives'
+        uses: actions/upload-artifact@v7
+        with:
+          name: sources
+          path: '${{ github.workspace }}/dist'
+
+  dmg:
+    needs: [src]
+    runs-on: macos-latest
+    outputs:
+      dmg: ${{ steps.releaser.outputs.dmg }}
+    steps:
+      - name: 'Set up Python'
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - name: 'Fetch build-release.py'
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.src.outputs.commit }}
+          sparse-checkout: 'build-scripts/build-release.py'
+      - name: 'Download source archives'
+        uses: actions/download-artifact@v8
+        with:
+          name: sources
+          path: '${{ github.workspace }}'
+      - name: 'Untar ${{ needs.src.outputs.src-tar-gz }}'
+        id: tar
+        run: |
+          mkdir -p "${{ github.workspace }}/tardir"
+          tar -C "${{ github.workspace }}/tardir" -x -f "${{ github.workspace }}/${{ needs.src.outputs.src-tar-gz }}"
+          echo "path=${{ github.workspace }}/tardir/${{ needs.src.outputs.project }}-${{ needs.src.outputs.version }}" >> $GITHUB_OUTPUT
+      - name: 'Build SDL3.dmg'
+        id: releaser
+        shell: bash
+        run: |
+          python build-scripts/build-release.py \
+            --actions dmg \
+            --commit ${{ needs.src.outputs.commit }} \
+            --root "${{ steps.tar.outputs.path }}" \
+            --github \
+            --debug
+      - name: 'Store DMG image file'
+        uses: actions/upload-artifact@v7
+        with:
+          name: dmg
+          path: '${{ github.workspace }}/dist'
+
+  msvc:
+    needs: [src]
+    runs-on: windows-2025
+    outputs:
+      VC-devel: ${{ steps.releaser.outputs.VC-devel }}
+    steps:
+      - name: 'Set up Python'
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - name: 'Fetch build-release.py'
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.src.outputs.commit }}
+          sparse-checkout: 'build-scripts/build-release.py'
+      - name: 'Download source archives'
+        uses: actions/download-artifact@v8
+        with:
+          name: sources
+          path: '${{ github.workspace }}'
+      - name: 'Unzip ${{ needs.src.outputs.src-zip }}'
+        id: zip
+        run: |
+          New-Item C:\temp -ItemType Directory -ErrorAction SilentlyContinue
+          cd C:\temp
+          unzip "${{ github.workspace }}/${{ needs.src.outputs.src-zip }}"
+          echo "path=C:\temp\${{ needs.src.outputs.project }}-${{ needs.src.outputs.version }}" >> $Env:GITHUB_OUTPUT
+      - name: 'Build MSVC binary archives'
+        id: releaser
+        run: |
+          python build-scripts/build-release.py `
+            --actions msvc `
+            --commit ${{ needs.src.outputs.commit }} `
+            --root "${{ steps.zip.outputs.path }}" `
+            --github `
+            --debug
+      - name: 'Store MSVC archives'
+        uses: actions/upload-artifact@v7
+        with:
+          name: win32
+          path: '${{ github.workspace }}/dist'
+
+  publish:
+    needs: [src, dmg, msvc]
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ inputs.tag }}
+    steps:
+      - name: 'Download artifacts'
+        uses: actions/download-artifact@v8
+        with:
+          path: 'artifacts'
+          merge-multiple: true
+      - name: 'Rename to fixed asset names'
+        run: |
+          mkdir release
+          cp "artifacts/${{ needs.dmg.outputs.dmg }}" release/SDL3.dmg
+          cp "artifacts/${{ needs.msvc.outputs.VC-devel }}" release/SDL3-devel-VC.zip
+      - name: 'Publish to the ${{ inputs.tag }} release'
+        run: |
+          notes="SDL ${{ needs.src.outputs.version }} at ${{ needs.src.outputs.commit }}"
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release edit "$TAG" --notes "$notes"
+          else
+            gh release create "$TAG" --verify-tag --prerelease --title "$TAG" --notes "$notes"
+          fi
+          gh release upload "$TAG" --clobber release/*
