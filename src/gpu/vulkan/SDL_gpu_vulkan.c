@@ -9329,8 +9329,6 @@ static void VULKAN_DownloadQueryResults(
     VulkanQueryPool *vulkanQueryPool = (VulkanQueryPool *)pool;
     VulkanBufferContainer *dstContainer = (VulkanBufferContainer *)destination->transfer_buffer;
 
-    SDL_LockRWLockForReading(renderer->defragLock);
-
     // Note that the transfer buffer does not need a barrier, as it is synced by the client
 
     renderer->vkCmdCopyQueryPoolResults(
@@ -9345,8 +9343,6 @@ static void VULKAN_DownloadQueryResults(
 
     VULKAN_INTERNAL_TrackQueryPool(vulkanCommandBuffer, vulkanQueryPool);
     VULKAN_INTERNAL_TrackBuffer(vulkanCommandBuffer, dstContainer->activeBuffer);
-
-    SDL_UnlockRWLock(renderer->defragLock);
 }
 
 static void VULKAN_GenerateMipmaps(
