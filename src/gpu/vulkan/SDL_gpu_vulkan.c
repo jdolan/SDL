@@ -7481,8 +7481,8 @@ static VulkanFramebuffer *VULKAN_INTERNAL_FetchFramebuffer(
             VulkanTextureContainer *resolveTextureContainer = (VulkanTextureContainer *)colorTargetInfos[i].resolve_texture;
             VulkanTextureSubresource *resolveSubresource = VULKAN_INTERNAL_FetchTextureSubresource(
                 resolveTextureContainer,
-                colorTargetInfos[i].layer_or_depth_plane,
-                colorTargetInfos[i].mip_level);
+                colorTargetInfos[i].resolve_layer,
+                colorTargetInfos[i].resolve_mip_level);
 
             key.resolveAttachmentViews[key.numResolveAttachments] = resolveSubresource->renderTargetViews[0];
             key.numResolveAttachments += 1;
